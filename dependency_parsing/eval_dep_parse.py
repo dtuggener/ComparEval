@@ -19,6 +19,13 @@ res_dep_index, res_label_index = 6, 7	# parsey mcparseface
 """ Evaluate punctuation? """
 skip_punct = True
 
+""" Evaluation criterion """
+# LAS = labeled attachment
+# LS = labeling score (neglect attachment)
+# UAS = unlabeled attachement
+metric = 'LAS'
+print >> sys.stderr, '* Using metric', metric
+
 """ Loading, initializing, and sanity checks """
 def usage():
 	print >> sys.stderr, '* Usage: python eval_dep_parse.py gold_file tagger_file'
@@ -65,10 +72,23 @@ for i, (key_line, res_line) in enumerate(zip(key, res), 1):
 	if gold_label == 'punct' and skip_punct: continue	# skip evaluation of punctuation, see settings above 
 	res_label, res_dep = res_line[res_label_index].lower(), res_line[res_dep_index]
 
-	#if gold_label == res_label: eval_label[gold_label]['correct'] += 1	# label
-	#if gold_dep == res_dep: eval_label[gold_label]['correct'] += 1	# attachment
-	if (gold_dep, gold_label) == (res_dep, res_label): eval_label[gold_label]['correct'] += 1	# label + attachment
-	else: 
+	correct = False
+	if metric == 'LS':
+		if gold_label == res_label:	# label only
+			eval_label[gold_label]['correct'] += 1
+			correct = True
+	elif metric == 'UAS':
+		if gold_dep == res_dep:	# attachment only
+			eval_label[gold_label]['correct'] += 1
+			correct = True
+	elif metric == 'LAS':
+		if (gold_dep, gold_label) == (res_dep, res_label):	# label + attachment
+			eval_label[gold_label]['correct'] += 1	
+			correct = True
+	else:
+		sys.stderr.write('\nUnkown metric '+metric+'. Specifiy one of: LS, LAS, UAS')
+		sys.exit()
+	if not correct:
 		eval_errors[(gold_label, res_label)] += 1
 		all_labels_correct = False
 
